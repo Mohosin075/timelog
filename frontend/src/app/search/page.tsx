@@ -152,7 +152,7 @@ export default function SearchPage() {
               onChange={handleChange}
               onKeyDown={handleKeyDown}
               placeholder='Search by activity or notes (e.g. "Next.js", "client meeting")'
-              className="field pl-10 pr-10 text-sm py-3 shadow-inner"
+              className="field !pl-10 !pr-10 text-sm py-3 shadow-inner"
             />
           </div>
           {query && (
