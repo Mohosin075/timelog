@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useApp, getLocalDateString } from '../context/AppContext';
 import {
   Clock, Calendar, BarChart3, Search, LogOut, Sun, Moon,
-  User, ChevronLeft, ChevronRight,
+  User, ChevronLeft, ChevronRight, RotateCcw,
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -57,7 +57,7 @@ export const Header: React.FC = () => {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-xl px-4 md:px-6">
-        <div className="max-w-7xl mx-auto h-14 flex items-center gap-4">
+        <div className="max-w-7xl mx-auto h-14 flex items-center gap-1.5 sm:gap-4">
 
           {/* Brand */}
           <Link href="/" className="flex items-center gap-2 shrink-0 mr-2 group">
@@ -94,36 +94,35 @@ export const Header: React.FC = () => {
 
           {/* Date navigator — only on home page */}
           {pathname === '/' && (
-            <div className="flex items-center gap-1 border border-border rounded-xl px-1 py-1 bg-surface shadow-sm hover:border-primary/30 transition-colors">
+            <div className="flex items-center gap-0.5 sm:gap-1 border border-border rounded-xl px-0.5 sm:px-1 py-1 bg-surface shadow-sm hover:border-primary/30 transition-colors">
               <button
                 onClick={() => navigateDate(-1)}
-                className="btn-icon p-1.5"
+                className="btn-icon p-1"
                 title="Previous day"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-3.5 h-3.5" />
               </button>
-              <div className="flex flex-col items-center min-w-[96px]">
-                <span className="text-xs font-semibold text-foreground">
+              <div className="flex flex-col items-center justify-center min-w-[76px] sm:min-w-[96px] px-1">
+                <span className="text-[11px] sm:text-xs font-bold text-foreground text-center">
                   {isToday ? 'Today' : formatDisplayDate(currentDate)}
                 </span>
-                {!isToday && (
-                  <span className="text-[10px] text-muted">{formatDisplayDate(currentDate)}</span>
-                )}
               </div>
               <button
                 onClick={() => navigateDate(1)}
                 disabled={isToday}
-                className="btn-icon p-1.5 disabled:opacity-30"
+                className="btn-icon p-1 disabled:opacity-30"
                 title="Next day"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
               {!isToday && (
                 <button
                   onClick={() => setCurrentDate(today)}
-                  className="text-[10px] text-primary font-semibold px-2 hover:underline"
+                  className="text-primary font-bold hover:underline flex items-center gap-1 text-[10px] px-1.5 py-1 rounded-lg hover:bg-primary-faint transition-all"
+                  title="Back to Today"
                 >
-                  Back to Today
+                  <span className="hidden sm:inline">Back to Today</span>
+                  <RotateCcw className="w-3.5 h-3.5 sm:hidden shrink-0" />
                 </button>
               )}
             </div>
