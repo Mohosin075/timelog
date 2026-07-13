@@ -84,7 +84,7 @@ export default function RegisterPage() {
           </div>
 
           {/* Interactive timeline mockup */}
-          <div className="card glass p-6 border-white/5 space-y-4 shadow-2xl relative overflow-hidden bg-white/[0.03]">
+          <div className="bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl p-6 space-y-4 shadow-2xl relative overflow-hidden">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Today's Flow Preview</p>
             <div className="space-y-4">
               <div className="flex items-start gap-3">
@@ -166,7 +166,7 @@ export default function RegisterPage() {
                     value={name}
                     onChange={(e) => { setName(e.target.value); setErrors(p => ({ ...p, name: undefined })); }}
                     placeholder="John Doe"
-                    className={`field pl-10 ${errors.name ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.15)]' : ''}`}
+                    className={`field !pl-10 ${errors.name ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.15)]' : ''}`}
                   />
                 </div>
                 {errors.name && <p className="text-xs text-red-400">{errors.name}</p>}
@@ -184,7 +184,7 @@ export default function RegisterPage() {
                     value={email}
                     onChange={(e) => { setEmail(e.target.value); setErrors(p => ({ ...p, email: undefined })); }}
                     placeholder="name@example.com"
-                    className={`field pl-10 ${errors.email ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.15)]' : ''}`}
+                    className={`field !pl-10 ${errors.email ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.15)]' : ''}`}
                   />
                 </div>
                 {errors.email && <p className="text-xs text-red-400">{errors.email}</p>}
@@ -202,7 +202,7 @@ export default function RegisterPage() {
                     value={password}
                     onChange={(e) => { setPassword(e.target.value); setErrors(p => ({ ...p, password: undefined })); }}
                     placeholder="Min. 6 characters"
-                    className={`field pl-10 pr-10 ${errors.password ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.15)]' : ''}`}
+                    className={`field !pl-10 !pr-10 ${errors.password ? 'border-red-500 focus:border-red-500 focus:shadow-[0_0_0_3px_rgba(239,68,68,0.15)]' : ''}`}
                   />
                   <button
                     type="button"
