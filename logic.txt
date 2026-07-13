@@ -1,0 +1,449 @@
+TimeLog – Product Requirements Document (PRD)
+1. Overview
+
+TimeLog is a simple daily time logging application.
+
+The goal is not to automatically track the user's activity. Instead, users manually record what they are doing throughout the day using a clean table interface.
+
+At the end of each day, the system automatically closes the day (e.g., at 11:59 PM or a configurable time) and generates a productivity report and daily insights.
+
+2. Goal
+
+Help users answer one simple question:
+
+"Where did my time go today?"
+
+No complicated timers.
+
+No Pomodoro.
+
+No AI scheduling.
+
+Just simple logging and meaningful daily insights.
+
+3. Core Workflow
+Open App
+
+↓
+
+Add Activity
+
+↓
+
+Continue Adding Activities Throughout the Day
+
+↓
+
+Day Ends Automatically
+
+↓
+
+Daily Analysis is Generated
+
+↓
+
+Next Day Starts Automatically
+4. Main Screen
+
+The home screen contains only one table.
+
+Start	End	Activity	Category
+08:00	09:30	Next.js Learning	Learning
+09:30	10:00	Breakfast	Personal
+10:00	12:00	Client Project	Work
+01:00	02:00	Facebook	Distraction
+
+At the bottom:
+
++ Add Activity
+
+No unnecessary buttons.
+
+No complex dashboard.
+
+5. Add Activity
+
+Required fields
+
+Start Time
+End Time
+Activity Name
+Category
+
+Optional
+
+Notes
+
+Example
+
+Start
+
+09:00
+
+End
+
+10:30
+
+Activity
+
+Authentication API
+
+Category
+
+Work
+
+
+Save.
+
+Done.
+
+6. Categories
+
+Keep them fixed.
+
+💼 Work
+📚 Learning
+🏃 Health
+🏠 Personal
+📱 Distraction
+😴 Sleep
+
+This makes reporting simple and consistent.
+
+7. Automatic Day Closing
+
+The user never presses Finish Day.
+
+At the configured end-of-day time (default 11:59 PM):
+
+Today's entries are locked.
+Daily report is generated automatically.
+A new empty day is created.
+If the last activity has no end time, the app prompts the user next time they open it to complete or adjust it.
+8. Daily Report
+
+Generated automatically.
+
+Example
+
+13 July 2026
+
+Total Logged
+
+14 Hours
+
+-------------------
+
+Work
+
+5h 20m
+
+Learning
+
+3h 10m
+
+Personal
+
+2h
+
+Health
+
+1h
+
+Distraction
+
+2h
+
+Sleep
+
+7h
+
+9. Productivity Score
+
+Simple formula.
+
+Productive Time
+
+=
+
+Work
+
++
+
+Learning
+
++
+
+Health
+
+
+Example
+
+Work
+
+5h
+
+Learning
+
+3h
+
+Health
+
+1h
+
+=
+
+9 Hours Productive
+
+Total Logged
+
+12 Hours
+
+Productivity
+
+75%
+
+
+Simple.
+
+Easy to understand.
+
+10. Daily Insights
+
+Automatically generated.
+
+Example
+
+Longest Focus Session
+Client Project
+
+2 Hours 20 Minutes
+Most Time Spent On
+Work
+
+5 Hours
+Largest Distraction
+Social Media
+
+1 Hour 40 Minutes
+Activity Switches
+You changed activities
+
+9 Times
+Average Session Length
+58 Minutes
+Free Time
+Unlogged Time
+
+3 Hours
+
+(Shows gaps between activities.)
+
+11. Daily Timeline
+
+Instead of only numbers, show the day's flow.
+
+08:00
+
+↓
+
+Next.js Learning
+
+90m
+
+↓
+
+Breakfast
+
+30m
+
+↓
+
+Client Project
+
+2h
+
+↓
+
+Lunch
+
+1h
+
+↓
+
+Meeting
+
+45m
+
+↓
+
+Gym
+
+1h
+
+
+Users can quickly remember how their day unfolded.
+
+12. Weekly Summary
+
+Simple cards.
+
+Average Productivity
+
+74%
+
+Most Productive Day
+
+Tuesday
+
+Average Work Time
+
+5h/day
+
+Average Learning Time
+
+2h/day
+
+Average Distraction
+
+1h/day
+
+13. Monthly Summary
+
+Show only:
+
+Average Productivity
+Total Work Hours
+Total Learning Hours
+Total Distraction Hours
+Most Active Category
+Most Productive Day
+
+Nothing more.
+
+14. Search
+
+Search previous activities.
+
+Example
+
+Search
+
+Authentication
+
+Results
+
+July 10
+
+Authentication API
+
+2h
+
+------------
+
+July 12
+
+JWT Authentication
+
+1h 30m
+
+15. Calendar View
+July
+
+🟢 🟢 🟡 🔴 🟢 🟢
+
+
+Meaning
+
+🟢 High Productivity
+
+🟡 Average
+
+🔴 Low Productivity
+
+Clicking a date opens that day's timeline and report.
+
+16. Dashboard
+
+Very minimal.
+
+Today's Logged Time
+
+7h 40m
+
+Activities
+
+6
+
+Current Productivity
+
+71%
+
+Largest Category
+
+Work
+
+17. Notifications
+
+Optional reminders.
+
+You haven't logged any activity in the last 2 hours.
+
+Don't forget to record your current activity.
+
+18. Database Design
+Activity
+{
+  _id,
+  userId,
+  date,
+  startTime,
+  endTime,
+  duration,
+  activity,
+  category,
+  notes,
+  createdAt
+}
+Daily Report
+{
+  _id,
+  userId,
+  date,
+  totalLoggedTime,
+  productiveTime,
+  productivityScore,
+  workTime,
+  learningTime,
+  personalTime,
+  healthTime,
+  distractionTime,
+  sleepTime,
+  longestFocusSession,
+  averageSession,
+  activitySwitches,
+  unloggedTime,
+  generatedAt
+}
+19. MVP Features
+Phase 1
+User Authentication
+Add/Edit/Delete Activity
+Daily Table
+Calendar View
+Automatic Day Closing
+Automatic Daily Report
+Weekly Summary
+Monthly Summary
+Search Activities
+20. Design Philosophy
+
+The app should feel like Google Sheets meets Apple Health:
+
+Clean table-based input.
+No clutter.
+No unnecessary timers.
+No complex productivity systems.
+Focus on logging first, insights second.
+
+The goal is to make daily logging take less than 30 seconds per entry, while providing an automatic end-of-day summary that helps users understand how they actually spent their time and whether it was productive.
