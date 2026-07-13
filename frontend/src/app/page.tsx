@@ -79,24 +79,37 @@ function StatCard({
   );
 }
 
-// Mobile-only pill metric
-function MetricPill({
-  label, value, icon: Icon, colorClass,
-}: { label: string; value: string; icon: React.ComponentType<any>; colorClass?: string }) {
+// Mobile metric widget — looks like a real app widget
+function AppMetricWidget({
+  label, value, sub, icon: Icon, accent, bgClass,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  icon: React.ComponentType<any>;
+  accent: string; // css color string
+  bgClass: string;
+}) {
   return (
-    <div className={`flex items-center gap-2 px-3 py-2.5 rounded-2xl border shrink-0 ${
-      colorClass || 'bg-surface border-border'
-    }`}>
-      <Icon className="w-4 h-4" />
-      <div>
-        <p className="text-[9px] font-bold uppercase tracking-wider opacity-70 leading-none">{label}</p>
-        <p className="text-base font-extrabold leading-tight">{value}</p>
+    <div className={`flex-shrink-0 w-36 rounded-3xl p-4 ${bgClass} relative overflow-hidden`}>
+      {/* Background decoration */}
+      <div
+        className="absolute -right-4 -top-4 w-16 h-16 rounded-full opacity-20"
+        style={{ backgroundColor: accent }}
+      />
+      <div className={`w-8 h-8 rounded-2xl flex items-center justify-center mb-3`}
+        style={{ backgroundColor: `color-mix(in srgb, ${accent} 20%, transparent)` }}
+      >
+        <Icon className="w-4 h-4" style={{ color: accent }} />
       </div>
+      <p className="text-[10px] font-bold uppercase tracking-widest opacity-60 leading-none mb-1">{label}</p>
+      <p className="text-xl font-black leading-none" style={{ color: accent }}>{value}</p>
+      {sub && <p className="text-[9px] text-muted mt-1 leading-tight">{sub}</p>}
     </div>
   );
 }
 
-// Mobile activity card component
+// Mobile activity card — native iOS-style
 function MobileActivityCard({
   act, onEdit, onDelete, isDeleting, isLocked,
 }: {
@@ -109,64 +122,97 @@ function MobileActivityCard({
   const cat = CAT_MAP[act.category as CategoryName];
   const catVar = `var(--${act.category.toLowerCase()})`;
   const dur = act.duration ? fmtMins(act.duration) : null;
+  const isActive = !act.endTime;
+
   return (
     <div
-      className={`relative flex gap-3 px-4 py-3.5 border-b border-border last:border-b-0 transition-opacity ${
-        isDeleting ? 'opacity-40' : ''
+      className={`mx-3 mb-3 rounded-3xl bg-surface shadow-sm overflow-hidden transition-all duration-200 ${
+        isDeleting ? 'opacity-40 scale-95' : ''
       }`}
+      style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)' }}
     >
-      {/* Category accent bar */}
-      <div className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full" style={{ backgroundColor: catVar }} />
+      {/* Colored top stripe */}
+      <div className="h-1 w-full" style={{ backgroundColor: catVar }} />
 
-      {/* Times */}
-      <div className="flex flex-col items-center justify-start gap-1 pt-0.5 shrink-0 w-10">
-        <span className="font-mono text-[11px] font-bold text-foreground leading-none">{act.startTime}</span>
-        <div className="w-px flex-1 min-h-[10px] rounded-full" style={{ backgroundColor: catVar, opacity: 0.35 }} />
-        <span className="font-mono text-[10px] font-semibold leading-none" style={{ color: act.endTime ? 'var(--muted)' : catVar }}>
-          {act.endTime || '•••'}
-        </span>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0">
+      <div className="p-4">
+        {/* Header row */}
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-sm font-bold leading-snug truncate">{act.activity}</p>
-            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-              <span
-                className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
-                style={{
-                  backgroundColor: `color-mix(in srgb, ${catVar} 12%, transparent)`,
-                  color: catVar,
-                  border: `1px solid color-mix(in srgb, ${catVar} 25%, transparent)`,
-                }}
-              >
-                {cat.emoji} {act.category}
-              </span>
-              {dur && (
-                <span className="text-[9px] font-semibold text-muted bg-surface-hover px-1.5 py-0.5 rounded-full">
-                  {dur}
-                </span>
-              )}
-              {!act.endTime && (
-                <span className="text-[9px] font-extrabold text-primary animate-pulse">● Active</span>
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Category icon circle */}
+            <div
+              className="w-10 h-10 rounded-2xl flex items-center justify-center text-lg shrink-0 shadow-sm"
+              style={{ backgroundColor: `color-mix(in srgb, ${catVar} 15%, transparent)` }}
+            >
+              {cat.emoji}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold leading-snug truncate">{act.activity}</p>
+              {act.notes && (
+                <p className="text-[11px] text-muted mt-0.5 truncate">{act.notes}</p>
               )}
             </div>
-            {act.notes && (
-              <p className="text-[11px] text-muted mt-1 truncate">{act.notes}</p>
-            )}
           </div>
           {/* Actions */}
           {!isLocked && (
-            <div className="flex gap-0.5 shrink-0">
-              <button onClick={onEdit} className="btn-icon p-1.5" title="Edit">
-                <Pencil className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={onEdit}
+                className="w-8 h-8 rounded-2xl bg-surface-hover flex items-center justify-center active:scale-90 transition-all"
+              >
+                <Pencil className="w-3.5 h-3.5 text-muted" />
               </button>
-              <button onClick={onDelete} disabled={isDeleting} className="btn-icon danger p-1.5" title="Delete">
-                {isDeleting ? <span className="spinner w-3 h-3" /> : <Trash2 className="w-3.5 h-3.5" />}
+              <button
+                onClick={onDelete}
+                disabled={isDeleting}
+                className="w-8 h-8 rounded-2xl bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center active:scale-90 transition-all"
+              >
+                {isDeleting
+                  ? <span className="spinner w-3.5 h-3.5" />
+                  : <Trash2 className="w-3.5 h-3.5 text-rose-500" />}
               </button>
             </div>
           )}
+        </div>
+
+        {/* Footer row */}
+        <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
+          {/* Time range */}
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: catVar }} />
+            <span className="font-mono text-[11px] font-bold text-foreground">{act.startTime}</span>
+            {act.endTime ? (
+              <>
+                <span className="text-[10px] text-muted">→</span>
+                <span className="font-mono text-[11px] font-semibold text-muted">{act.endTime}</span>
+              </>
+            ) : (
+              <span className="text-[10px] font-bold text-primary animate-pulse">● Live</span>
+            )}
+          </div>
+          {/* Chips row */}
+          <div className="flex items-center gap-1.5">
+            {dur && (
+              <span
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                style={{
+                  backgroundColor: `color-mix(in srgb, ${catVar} 12%, transparent)`,
+                  color: catVar,
+                }}
+              >
+                {dur}
+              </span>
+            )}
+            <span
+              className="text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full border"
+              style={{
+                color: catVar,
+                borderColor: `color-mix(in srgb, ${catVar} 30%, transparent)`,
+                backgroundColor: `color-mix(in srgb, ${catVar} 8%, transparent)`,
+              }}
+            >
+              {act.category}
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -649,37 +695,47 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Mobile horizontal pill scroll */}
-        <div className="flex sm:hidden gap-2.5 overflow-x-auto pb-1 -mx-4 px-4" style={{ scrollbarWidth: 'none' }}>
-          <MetricPill
+        {/* ── Mobile app-style widgets ──────────────────────────────────── */}
+        <div className="flex sm:hidden gap-3 overflow-x-auto pb-1 -mx-4 px-4" style={{ scrollbarWidth: 'none' }}>
+          <AppMetricWidget
             label="Logged"
             value={fmtMins(metrics.total)}
+            sub={`${activities.length} ${activities.length === 1 ? 'activity' : 'activities'}`}
             icon={Clock}
-            colorClass="bg-primary/10 text-primary border border-primary/20"
+            accent="var(--primary)"
+            bgClass="bg-primary/[0.07] border border-primary/10"
           />
-          <MetricPill
+          <AppMetricWidget
             label="Productive"
             value={fmtMins(metrics.productive)}
+            sub="Work + Learn + Health"
             icon={Zap}
-            colorClass="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 dark:text-emerald-400"
+            accent="var(--health)"
+            bgClass="bg-emerald-500/[0.07] border border-emerald-500/10"
           />
-          <MetricPill
+          <AppMetricWidget
             label="Score"
             value={`${metrics.score}%`}
+            sub={metrics.score >= 70 ? 'High 🟢' : metrics.score >= 40 ? 'Average 🟡' : metrics.total === 0 ? 'No data' : 'Low 🔴'}
             icon={TrendingUp}
-            colorClass={
-              metrics.score >= 70
-                ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 dark:text-emerald-400'
-                : metrics.score >= 40
-                ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20 dark:text-amber-400'
-                : 'bg-rose-500/10 text-rose-600 border border-rose-500/20 dark:text-rose-400'
+            accent={
+              metrics.score >= 70 ? 'var(--health)'
+              : metrics.score >= 40 ? 'var(--personal)'
+              : 'var(--distraction)'
+            }
+            bgClass={
+              metrics.score >= 70 ? 'bg-emerald-500/[0.07] border border-emerald-500/10'
+              : metrics.score >= 40 ? 'bg-amber-500/[0.07] border border-amber-500/10'
+              : 'bg-rose-500/[0.07] border border-rose-500/10'
             }
           />
-          <MetricPill
+          <AppMetricWidget
             label="Top"
             value={metrics.topCat ? `${CAT_MAP[metrics.topCat as CategoryName]?.emoji ?? ''} ${metrics.topCat}` : '—'}
+            sub={metrics.topTime > 0 ? fmtMins(metrics.topTime) : 'No data yet'}
             icon={Layers}
-            colorClass="bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 dark:text-indigo-400"
+            accent="var(--sleep)"
+            bgClass="bg-indigo-500/[0.07] border border-indigo-500/10"
           />
         </div>
         {/* ── Stat cards ─────────────────────────────────────────────────── */}
@@ -769,8 +825,9 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
 
           {/* Activity log - mobile card list + desktop table */}
-          <div className="xl:col-span-2 card overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div className="xl:col-span-2 md:card md:overflow-hidden -mx-4 sm:mx-0">
+            {/* Desktop-only header (hidden on mobile - mobile uses section header inside) */}
+            <div className="hidden md:flex items-center justify-between px-5 py-4 border-b border-border">
               <div>
                 <h2 className="text-base font-bold">
                   Activity Log
@@ -792,7 +849,23 @@ export default function Dashboard() {
             </div>
 
             {/* ── Mobile card list (hidden on md+) ── */}
-            <div className="md:hidden">
+            <div className="md:hidden pt-2 pb-2">
+              {/* Section header */}
+              <div className="flex items-center justify-between px-4 mb-3">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-extrabold">
+                    {isToday ? 'Today' : 'Activities'}
+                    {activitiesLoading && <span className="spinner ml-2 w-3 h-3 border-[2px]" />}
+                  </h2>
+                  {activities.length > 0 && (
+                    <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                      {activities.length}
+                    </span>
+                  )}
+                  {isLocked && <span className="text-[10px] text-muted">🔒</span>}
+                </div>
+              </div>
+
               {showAddRow && !isLocked && (
                 <MobileAddForm
                   initial={{ ...EMPTY_FORM, startTime: defaultStartTime() }}
@@ -828,24 +901,36 @@ export default function Dashboard() {
                 );
               })}
               {activities.length === 0 && !showAddRow && !activitiesLoading && (
-                <div className="flex flex-col items-center gap-3 py-14 px-4">
-                  <div className="w-14 h-14 rounded-2xl bg-surface-hover flex items-center justify-center">
-                    <Layers className="w-7 h-7 text-muted" />
+                <div className="flex flex-col items-center gap-4 py-16 px-8">
+                  <div className="w-20 h-20 rounded-3xl bg-surface border border-border flex items-center justify-center text-4xl shadow-sm">
+                    {isLocked ? '🔒' : '📋'}
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-bold">No activities yet</p>
-                    <p className="text-xs text-muted mt-1">
-                      {isLocked ? 'This day has no logged activities.' : 'Tap + to start tracking your day.'}
+                    <p className="text-base font-extrabold">
+                      {isLocked ? 'Day Locked' : 'Nothing logged yet'}
+                    </p>
+                    <p className="text-sm text-muted mt-1">
+                      {isLocked ? 'No activities were recorded for this day.' : 'Tap the + button to log your first activity.'}
                     </p>
                   </div>
                 </div>
               )}
               {activitiesLoading && activities.length === 0 && (
-                <div className="space-y-0">
+                <div className="space-y-3 px-3">
                   {[1, 2, 3].map(i => (
-                    <div key={i} className="px-4 py-3.5 border-b border-border">
-                      <div className="skeleton h-4 w-2/3 rounded mb-2" />
-                      <div className="skeleton h-3 w-1/3 rounded" />
+                    <div key={i} className="rounded-3xl bg-surface border border-border p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="skeleton w-10 h-10 rounded-2xl" />
+                        <div className="flex-1 space-y-1.5">
+                          <div className="skeleton h-3.5 w-2/3 rounded-full" />
+                          <div className="skeleton h-2.5 w-1/3 rounded-full" />
+                        </div>
+                      </div>
+                      <div className="skeleton h-px w-full rounded" />
+                      <div className="mt-3 flex justify-between">
+                        <div className="skeleton h-2.5 w-24 rounded-full" />
+                        <div className="skeleton h-2.5 w-16 rounded-full" />
+                      </div>
                     </div>
                   ))}
                 </div>
