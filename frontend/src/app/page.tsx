@@ -79,6 +79,100 @@ function StatCard({
   );
 }
 
+// Mobile-only pill metric
+function MetricPill({
+  label, value, icon: Icon, colorClass,
+}: { label: string; value: string; icon: React.ComponentType<any>; colorClass?: string }) {
+  return (
+    <div className={`flex items-center gap-2 px-3 py-2.5 rounded-2xl border shrink-0 ${
+      colorClass || 'bg-surface border-border'
+    }`}>
+      <Icon className="w-4 h-4" />
+      <div>
+        <p className="text-[9px] font-bold uppercase tracking-wider opacity-70 leading-none">{label}</p>
+        <p className="text-base font-extrabold leading-tight">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+// Mobile activity card component
+function MobileActivityCard({
+  act, onEdit, onDelete, isDeleting, isLocked,
+}: {
+  act: IActivity;
+  onEdit: () => void;
+  onDelete: () => void;
+  isDeleting: boolean;
+  isLocked: boolean;
+}) {
+  const cat = CAT_MAP[act.category as CategoryName];
+  const catVar = `var(--${act.category.toLowerCase()})`;
+  const dur = act.duration ? fmtMins(act.duration) : null;
+  return (
+    <div
+      className={`relative flex gap-3 px-4 py-3.5 border-b border-border last:border-b-0 transition-opacity ${
+        isDeleting ? 'opacity-40' : ''
+      }`}
+    >
+      {/* Category accent bar */}
+      <div className="absolute left-0 top-3 bottom-3 w-1 rounded-r-full" style={{ backgroundColor: catVar }} />
+
+      {/* Times */}
+      <div className="flex flex-col items-center justify-start gap-1 pt-0.5 shrink-0 w-10">
+        <span className="font-mono text-[11px] font-bold text-foreground leading-none">{act.startTime}</span>
+        <div className="w-px flex-1 min-h-[10px] rounded-full" style={{ backgroundColor: catVar, opacity: 0.35 }} />
+        <span className="font-mono text-[10px] font-semibold leading-none" style={{ color: act.endTime ? 'var(--muted)' : catVar }}>
+          {act.endTime || '•••'}
+        </span>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-sm font-bold leading-snug truncate">{act.activity}</p>
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              <span
+                className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
+                style={{
+                  backgroundColor: `color-mix(in srgb, ${catVar} 12%, transparent)`,
+                  color: catVar,
+                  border: `1px solid color-mix(in srgb, ${catVar} 25%, transparent)`,
+                }}
+              >
+                {cat.emoji} {act.category}
+              </span>
+              {dur && (
+                <span className="text-[9px] font-semibold text-muted bg-surface-hover px-1.5 py-0.5 rounded-full">
+                  {dur}
+                </span>
+              )}
+              {!act.endTime && (
+                <span className="text-[9px] font-extrabold text-primary animate-pulse">● Active</span>
+              )}
+            </div>
+            {act.notes && (
+              <p className="text-[11px] text-muted mt-1 truncate">{act.notes}</p>
+            )}
+          </div>
+          {/* Actions */}
+          {!isLocked && (
+            <div className="flex gap-0.5 shrink-0">
+              <button onClick={onEdit} className="btn-icon p-1.5" title="Edit">
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+              <button onClick={onDelete} disabled={isDeleting} className="btn-icon danger p-1.5" title="Delete">
+                {isDeleting ? <span className="spinner w-3 h-3" /> : <Trash2 className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function CategoryBadge({ category }: { category: CategoryName }) {
   const cat = CAT_MAP[category];
   return (
@@ -230,6 +324,87 @@ function ActivityFormRow({
         </div>
       </td>
     </tr>
+  );
+}
+
+// ─── Mobile inline add/edit form ────────────────────────────────────────────
+
+function MobileAddForm({
+  initial, onSave, onCancel,
+}: {
+  initial?: ActivityFormValues;
+  onSave: (v: ActivityFormValues) => Promise<void>;
+  onCancel: () => void;
+}) {
+  const { toast } = useToast();
+  const [v, setV] = useState<ActivityFormValues>(initial ?? EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const actRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { actRef.current?.focus(); }, []);
+
+  const set = <K extends keyof ActivityFormValues>(k: K, val: ActivityFormValues[K]) =>
+    setV((prev) => ({ ...prev, [k]: val }));
+
+  const handleSave = async () => {
+    if (!v.startTime) { toast.error('Start time is required'); return; }
+    if (!v.activity.trim()) { toast.error('Activity name is required'); return; }
+    if (v.endTime && v.startTime >= v.endTime) { toast.error('End time must be after start time'); return; }
+    setSaving(true);
+    try { await onSave({ ...v, activity: v.activity.trim() }); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="border-b border-primary/30 bg-primary/[0.03] p-4 space-y-3 animate-fade-up">
+      <p className="text-[10px] font-extrabold text-primary uppercase tracking-wider">
+        {initial?.activity ? 'Edit Activity' : 'New Activity'}
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <p className="text-[9px] font-bold text-muted uppercase mb-1">Start</p>
+          <TimePicker value={v.startTime} onChange={(val) => set('startTime', val)} />
+        </div>
+        <div>
+          <p className="text-[9px] font-bold text-muted uppercase mb-1">End</p>
+          <TimePicker value={v.endTime} onChange={(val) => set('endTime', val)} />
+        </div>
+      </div>
+      <div>
+        <p className="text-[9px] font-bold text-muted uppercase mb-1">Activity</p>
+        <input
+          ref={actRef}
+          type="text"
+          value={v.activity}
+          onChange={(e) => set('activity', e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') onCancel(); }}
+          placeholder="What did you do?"
+          className="field text-sm"
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <p className="text-[9px] font-bold text-muted uppercase mb-1">Category</p>
+          <select value={v.category} onChange={(e) => set('category', e.target.value as CategoryName)} className="field text-sm">
+            {CATEGORIES.map((c) => (
+              <option key={c.name} value={c.name}>{c.emoji} {c.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <p className="text-[9px] font-bold text-muted uppercase mb-1">Notes</p>
+          <input type="text" value={v.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Optional" className="field text-sm" />
+        </div>
+      </div>
+      <div className="flex gap-2 pt-1">
+        <button onClick={handleSave} disabled={saving} className="btn btn-primary flex-1 py-2.5 text-sm">
+          {saving ? <span className="spinner border-white/30 border-t-white" /> : <><Check className="w-4 h-4" /> Save</>}
+        </button>
+        <button onClick={onCancel} className="btn-ghost border border-border px-4 py-2.5 text-sm rounded-xl">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -474,8 +649,42 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* Mobile horizontal pill scroll */}
+        <div className="flex sm:hidden gap-2.5 overflow-x-auto pb-1 -mx-4 px-4" style={{ scrollbarWidth: 'none' }}>
+          <MetricPill
+            label="Logged"
+            value={fmtMins(metrics.total)}
+            icon={Clock}
+            colorClass="bg-primary/10 text-primary border border-primary/20"
+          />
+          <MetricPill
+            label="Productive"
+            value={fmtMins(metrics.productive)}
+            icon={Zap}
+            colorClass="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 dark:text-emerald-400"
+          />
+          <MetricPill
+            label="Score"
+            value={`${metrics.score}%`}
+            icon={TrendingUp}
+            colorClass={
+              metrics.score >= 70
+                ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 dark:text-emerald-400'
+                : metrics.score >= 40
+                ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20 dark:text-amber-400'
+                : 'bg-rose-500/10 text-rose-600 border border-rose-500/20 dark:text-rose-400'
+            }
+          />
+          <MetricPill
+            label="Top"
+            value={metrics.topCat ? `${CAT_MAP[metrics.topCat as CategoryName]?.emoji ?? ''} ${metrics.topCat}` : '—'}
+            icon={Layers}
+            colorClass="bg-indigo-500/10 text-indigo-600 border border-indigo-500/20 dark:text-indigo-400"
+          />
+        </div>
         {/* ── Stat cards ─────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger">
+        {/* Desktop 2/4-col stat grid */}
+        <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 stagger">
           <StatCard
             label="Logged Time"
             value={fmtMins(metrics.total)}
@@ -559,7 +768,7 @@ export default function Dashboard() {
         {/* ── Main 2-column layout ──────────────────────────────────────── */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
 
-          {/* Activity log table */}
+          {/* Activity log - mobile card list + desktop table */}
           <div className="xl:col-span-2 card overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
               <div>
@@ -574,7 +783,7 @@ export default function Dashboard() {
               {!isLocked && !showAddRow && editingId === null && (
                 <button
                   onClick={() => setShowAddRow(true)}
-                  className="btn btn-primary text-xs py-2 px-3"
+                  className="hidden md:flex btn btn-primary text-xs py-2 px-3"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Add Activity
@@ -582,7 +791,69 @@ export default function Dashboard() {
               )}
             </div>
 
-            <div className="overflow-x-auto">
+            {/* ── Mobile card list (hidden on md+) ── */}
+            <div className="md:hidden">
+              {showAddRow && !isLocked && (
+                <MobileAddForm
+                  initial={{ ...EMPTY_FORM, startTime: defaultStartTime() }}
+                  onSave={handleAdd}
+                  onCancel={() => setShowAddRow(false)}
+                />
+              )}
+              {activities.map((act) => {
+                const isEditing = editingId === act._id;
+                const isDeleting = deletingId === act._id;
+                return isEditing ? (
+                  <MobileAddForm
+                    key={act._id}
+                    initial={{
+                      startTime: act.startTime,
+                      endTime: act.endTime ?? '',
+                      activity: act.activity,
+                      category: act.category as CategoryName,
+                      notes: act.notes ?? '',
+                    }}
+                    onSave={(v) => handleUpdate(act._id, v)}
+                    onCancel={() => setEditingId(null)}
+                  />
+                ) : (
+                  <MobileActivityCard
+                    key={act._id}
+                    act={act}
+                    onEdit={() => handleEdit(act)}
+                    onDelete={() => handleDelete(act._id)}
+                    isDeleting={isDeleting}
+                    isLocked={isLocked}
+                  />
+                );
+              })}
+              {activities.length === 0 && !showAddRow && !activitiesLoading && (
+                <div className="flex flex-col items-center gap-3 py-14 px-4">
+                  <div className="w-14 h-14 rounded-2xl bg-surface-hover flex items-center justify-center">
+                    <Layers className="w-7 h-7 text-muted" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-bold">No activities yet</p>
+                    <p className="text-xs text-muted mt-1">
+                      {isLocked ? 'This day has no logged activities.' : 'Tap + to start tracking your day.'}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {activitiesLoading && activities.length === 0 && (
+                <div className="space-y-0">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="px-4 py-3.5 border-b border-border">
+                      <div className="skeleton h-4 w-2/3 rounded mb-2" />
+                      <div className="skeleton h-3 w-1/3 rounded" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ── Desktop table (hidden on mobile) ── */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="data-table">
                 <thead>
                   <tr>
@@ -778,6 +1049,17 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
+
+      {/* ── Mobile FAB (Floating Add Button) ── */}
+      {!isLocked && !showAddRow && editingId === null && (
+        <button
+          onClick={() => setShowAddRow(true)}
+          className="md:hidden fixed bottom-[72px] right-5 z-40 w-14 h-14 rounded-full bg-primary text-white shadow-2xl shadow-primary/40 flex items-center justify-center active:scale-90 transition-all hover:bg-primary-hover"
+          aria-label="Add Activity"
+        >
+          <Plus className="w-6 h-6" />
+        </button>
+      )}
     </div>
   );
 }

@@ -399,3 +399,43 @@ body {
   animation: spin 0.6s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Ghost button ────────────────────────────────────────────────────────── */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--muted);
+  background: transparent;
+  border-radius: 0.75rem;
+  transition: background 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+}
+.btn-ghost:hover {
+  background: var(--surface-hover);
+  color: var(--foreground);
+}
+
+/* ── Mobile scrollbar hide ───────────────────────────────────────────────── */
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* ── Mobile safe bottom spacing ─────────────────────────────────────────── */
+@media (max-width: 768px) {
+  main {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ── Mobile activity card left accent bar color vars ────────────────────── */
+:root {
+  --work:        #6366f1;
+  --learning:    #0ea5e9;
+  --health:      #22c55e;
+  --personal:    #f59e0b;
+  --distraction: #ef4444;
+  --sleep:       #8b5cf6;
+}

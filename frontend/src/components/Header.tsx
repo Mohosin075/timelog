@@ -164,24 +164,35 @@ export const Header: React.FC = () => {
         </div>
       </header>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 inset-x-0 z-50 md:hidden border-t border-border bg-background/90 backdrop-blur-xl safe-area-inset-bottom">
-        <div className="flex items-center justify-around px-2 py-2">
-          {NAV_ITEMS.map(({ name, href, icon: Icon }) => {
-            const active = pathname === href;
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 active:scale-95 ${
-                  active ? 'text-primary' : 'text-muted'
-                }`}
-              >
-                <Icon className={`w-5 h-5 ${active ? 'text-primary' : ''}`} />
-                <span className="text-[10px] font-semibold">{name}</span>
-              </Link>
-            );
-          })}
+      {/* Mobile Bottom Nav - Premium Edition */}
+      <nav className="fixed bottom-0 inset-x-0 z-50 md:hidden">
+        {/* Backdrop blur + border */}
+        <div className="bg-background/75 backdrop-blur-2xl border-t border-border/50 px-2 pt-1.5 pb-3 safe-area-inset-bottom">
+          <div className="flex items-center justify-around">
+            {NAV_ITEMS.map(({ name, href, icon: Icon }) => {
+              const active = pathname === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className="relative flex flex-col items-center gap-0.5 px-4 py-1 min-w-[52px] transition-all duration-200 active:scale-90"
+                >
+                  {/* Active pill glow */}
+                  {active && (
+                    <span className="absolute inset-x-1 -top-1 h-0.5 rounded-full bg-primary shadow-[0_0_8px_2px] shadow-primary/50" />
+                  )}
+                  <div className={`p-1.5 rounded-xl transition-all duration-200 ${
+                    active ? 'bg-primary/15 text-primary scale-110' : 'text-muted'
+                  }`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <span className={`text-[9px] font-bold uppercase tracking-wider ${
+                    active ? 'text-primary' : 'text-muted'
+                  }`}>{name}</span>
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </nav>
     </>
