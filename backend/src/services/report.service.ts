@@ -194,6 +194,7 @@ export class ReportService {
         avgWorkTime: 0,
         avgLearningTime: 0,
         avgDistractionTime: 0,
+        dailyScores: [],
       };
     }
 
@@ -240,6 +241,7 @@ export class ReportService {
       avgWorkTime: Math.round(totalWork / numDays),
       avgLearningTime: Math.round(totalLearning / numDays),
       avgDistractionTime: Math.round(totalDistraction / numDays),
+      dailyScores: reports.map(r => ({ date: r.date, score: r.productivityScore })).sort((a, b) => a.date.localeCompare(b.date)),
     };
   }
 
