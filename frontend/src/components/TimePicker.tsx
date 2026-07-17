@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock } from 'lucide-react';
+import { Clock, Keyboard } from 'lucide-react';
 
 interface TimePickerProps {
   value: string; // "HH:MM" (24-hour format)
@@ -13,25 +13,53 @@ interface TimePickerProps {
 export const TimePicker: React.FC<TimePickerProps> = ({
   value,
   onChange,
-  placeholder = '00:00',
+  placeholder = '00:00 AM',
   className = '',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [inputValue, setInputValue] = useState(value);
+  const [inputValue, setInputValue] = useState('');
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const clockRef = useRef<HTMLDivElement>(null);
 
   // Floating coordinates for viewport positioning (bypasses table clipping)
   const [coords, setCoords] = useState({ top: 0, left: 0 });
 
-  // Material clock states
+  // State
   const [tempHour, setTempHour] = useState(12);
   const [tempMinute, setTempMinute] = useState(0);
   const [tempPeriod, setTempPeriod] = useState<'AM' | 'PM'>('AM');
   const [mode, setMode] = useState<'hour' | 'minute'>('hour');
   const [showKeyboard, setShowKeyboard] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
-  // Update floating dialog coordinates relative to input viewport bounding box
+  const HOUR_VALUES = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+  const MINUTE_VALUES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+
+  // Convert 24h ("14:15") to 12h display ("02:15 PM")
+  const formatDisplayTime = (val24: string) => {
+    if (!val24) return '';
+    const [hStr, mStr] = val24.split(':');
+    let h = parseInt(hStr, 10) || 0;
+    const m = mStr || '00';
+    const period = h >= 12 ? 'PM' : 'AM';
+    let h12 = h % 12;
+    if (h12 === 0) h12 = 12;
+    return `${String(h12).padStart(2, '0')}:${m} ${period}`;
+  };
+
+  // Convert 12h display ("02:15 PM") to 24h ("14:15")
+  const parseDisplayTime = (displayVal: string) => {
+    const match = displayVal.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!match) return null;
+    let h = parseInt(match[1], 10);
+    const m = parseInt(match[2], 10);
+    const period = match[3].toUpperCase();
+    if (period === 'PM' && h < 12) h += 12;
+    if (period === 'AM' && h === 12) h = 0;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  };
+
   const updateCoords = () => {
     if (inputRef.current) {
       const rect = inputRef.current.getBoundingClientRect();
@@ -42,12 +70,11 @@ export const TimePicker: React.FC<TimePickerProps> = ({
     }
   };
 
-  // Sync prop changes to local input value
+  // Sync prop changes to local display value
   useEffect(() => {
-    setInputValue(value);
+    setInputValue(formatDisplayTime(value));
   }, [value]);
 
-  // Sync modal state & layout coordinates when opened
   useEffect(() => {
     if (isOpen) {
       const parsed = parseTime(value);
@@ -58,7 +85,6 @@ export const TimePicker: React.FC<TimePickerProps> = ({
       setShowKeyboard(false);
 
       updateCoords();
-      // Listen to scroll (capture phase for inner table wrapper scrolls) and resize
       window.addEventListener('scroll', updateCoords, true);
       window.addEventListener('resize', updateCoords);
       return () => {
@@ -68,13 +94,11 @@ export const TimePicker: React.FC<TimePickerProps> = ({
     }
   }, [isOpen, value]);
 
-  // Click outside to close dropdown
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (
         rootRef.current &&
         !rootRef.current.contains(e.target as Node) &&
-        // Also check that we didn't click inside the fixed dropdown itself
         !(e.target as HTMLElement).closest('.time-picker-dropdown')
       ) {
         setIsOpen(false);
@@ -84,7 +108,6 @@ export const TimePicker: React.FC<TimePickerProps> = ({
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
 
-  // 12-hour parser
   const parseTime = (val: string) => {
     let [hStr, mStr] = (val || '00:00').split(':');
     let h = parseInt(hStr, 10) || 0;
@@ -106,7 +129,6 @@ export const TimePicker: React.FC<TimePickerProps> = ({
     };
   };
 
-  // 24-hour formatter
   const formatTime = (h: number, m: number, period: 'AM' | 'PM') => {
     let finalHour = h;
     if (period === 'PM') {
@@ -127,118 +149,162 @@ export const TimePicker: React.FC<TimePickerProps> = ({
   };
 
   const handleSaveClick = () => {
-    const finalVal = formatTime(tempHour, tempMinute, tempPeriod);
-    setInputValue(finalVal);
-    onChange(finalVal);
+    const finalVal24 = formatTime(tempHour, tempMinute, tempPeriod);
+    setInputValue(formatDisplayTime(finalVal24));
+    onChange(finalVal24);
     setIsOpen(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let raw = e.target.value.replace(/[^0-9]/g, '');
-    if (raw.length > 4) raw = raw.slice(0, 4);
+    let val = e.target.value;
+    setInputValue(val);
 
-    let formatted = raw;
-    if (raw.length > 2) {
-      formatted = `${raw.slice(0, 2)}:${raw.slice(2)}`;
-    }
-    setInputValue(formatted);
-
-    if (/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/.test(formatted)) {
-      onChange(formatted);
+    // Auto-parse if they typed a fully valid format like "07:15 PM" or "7:15 PM"
+    const parsed24 = parseDisplayTime(val);
+    if (parsed24) {
+      onChange(parsed24);
     }
   };
 
   const handleInputBlur = () => {
-    if (/^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/.test(inputValue)) {
-      onChange(inputValue);
+    const parsed24 = parseDisplayTime(inputValue);
+    if (parsed24) {
+      onChange(parsed24);
+      setInputValue(formatDisplayTime(parsed24));
     } else {
-      setInputValue(value);
+      setInputValue(formatDisplayTime(value));
     }
   };
-
-  const HOUR_VALUES = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-  const MINUTE_PRESETS = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 
   const hrIdx = HOUR_VALUES.indexOf(tempHour);
   const hourAngle = hrIdx !== -1 ? hrIdx * 30 : 0;
   const minuteAngle = tempMinute * 6;
   const handAngle = mode === 'hour' ? hourAngle : minuteAngle;
+  const handRadius = 68; // Consistent radius for 12-hour clean design
 
   const getSelectedCoords = () => {
-    if (mode === 'hour') {
-      const idx = HOUR_VALUES.indexOf(tempHour);
-      const angle = (idx * 30 - 90) * (Math.PI / 180);
-      const r = 66;
-      return {
-        x: 96 + r * Math.cos(angle),
-        y: 96 + r * Math.sin(angle),
-        val: String(tempHour),
-      };
-    } else {
-      const angle = (tempMinute * 6 - 90) * (Math.PI / 180);
-      const r = 74;
-      return {
-        x: 96 + r * Math.cos(angle),
-        y: 96 + r * Math.sin(angle),
-        val: String(tempMinute).padStart(2, '0'),
-      };
-    }
+    const rad = (handAngle - 90) * (Math.PI / 180);
+    return {
+      x: 96 + handRadius * Math.cos(rad),
+      y: 96 + handRadius * Math.sin(rad),
+      val: mode === 'hour' ? String(tempHour) : String(tempMinute).padStart(2, '0'),
+    };
   };
 
   const coordsHighlight = getSelectedCoords();
 
-  const renderClockNumbers = () => {
-    if (mode === 'hour') {
-      return HOUR_VALUES.map((h, i) => {
-        const angle = (i * 30 - 90) * (Math.PI / 180);
-        const r = 66;
-        const x = 96 + r * Math.cos(angle);
-        const y = 96 + r * Math.sin(angle);
-        const isSelected = h === tempHour;
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (showKeyboard) return;
+    (e.target as Element).setPointerCapture(e.pointerId);
+    setIsDragging(true);
+    updateTimeFromPointer(e);
+  };
 
-        return (
-          <button
-            key={h}
-            type="button"
-            onClick={() => handleHourSelect(h)}
-            className={`absolute w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center transition-all ${
-              isSelected ? 'opacity-0 scale-50 pointer-events-none' : 'text-foreground hover:bg-primary-faint'
-            }`}
-            style={{ left: `${x - 14}px`, top: `${y - 14}px` }}
-          >
-            {h}
-          </button>
-        );
-      });
-    } else {
-      return MINUTE_PRESETS.map((m, i) => {
-        const angle = (i * 30 - 90) * (Math.PI / 180);
-        const r = 74;
-        const x = 96 + r * Math.cos(angle);
-        const y = 96 + r * Math.sin(angle);
-        const isSelected = m === tempMinute;
-
-        return (
-          <button
-            key={m}
-            type="button"
-            onClick={() => handleMinuteSelect(m)}
-            className={`absolute w-7 h-7 rounded-full text-[10px] font-mono font-bold flex items-center justify-center transition-all ${
-              isSelected ? 'opacity-0 scale-50 pointer-events-none' : 'text-foreground hover:bg-primary-faint'
-            }`}
-            style={{ left: `${x - 14}px`, top: `${y - 14}px` }}
-          >
-            {String(m).padStart(2, '0')}
-          </button>
-        );
-      });
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDragging) {
+      updateTimeFromPointer(e);
     }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDragging) {
+      setIsDragging(false);
+      try {
+        (e.target as Element).releasePointerCapture(e.pointerId);
+      } catch (err) {}
+      if (mode === 'hour') {
+        setTimeout(() => setMode('minute'), 250);
+      }
+    }
+  };
+
+  const updateTimeFromPointer = (e: React.PointerEvent) => {
+    if (!clockRef.current) return;
+    const rect = clockRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    const x = e.clientX - centerX;
+    const y = e.clientY - centerY;
+    
+    let angle = (Math.atan2(y, x) * 180 / Math.PI) + 90;
+    if (angle < 0) angle += 360;
+
+    if (mode === 'hour') {
+      let hrIdx = Math.round(angle / 30);
+      if (hrIdx === 12) hrIdx = 0;
+      setTempHour(HOUR_VALUES[hrIdx]);
+    } else {
+      // Snap to 5-minute increments for smooth, clean dragging on the analog face
+      let minIdx = Math.round(angle / 30);
+      if (minIdx === 12) minIdx = 0;
+      setTempMinute(minIdx * 5);
+    }
+  };
+
+  const renderClockNumbers = () => {
+    const isHourMode = mode === 'hour';
+
+    const hourLayout = (
+      <div className={`absolute inset-0 transition-all duration-300 ${isHourMode ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'}`}>
+        {HOUR_VALUES.map((h, i) => {
+          const angle = (i * 30 - 90) * (Math.PI / 180);
+          const x = 96 + handRadius * Math.cos(angle);
+          const y = 96 + handRadius * Math.sin(angle);
+          const isSelected = h === tempHour && isHourMode;
+
+          return (
+            <button
+              key={`hour-${h}`}
+              type="button"
+              onClick={() => handleHourSelect(h)}
+              className={`absolute w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center transition-all ${
+                isSelected ? 'opacity-0 scale-50 pointer-events-none' : 'text-foreground hover:bg-primary/10'
+              }`}
+              style={{ left: `${x - 14}px`, top: `${y - 14}px` }}
+            >
+              {h}
+            </button>
+          );
+        })}
+      </div>
+    );
+
+    const minuteLayout = (
+      <div className={`absolute inset-0 transition-all duration-300 ${!isHourMode ? 'opacity-100 scale-100' : 'opacity-0 scale-110 pointer-events-none'}`}>
+        {MINUTE_VALUES.map((m, i) => {
+          const angle = (i * 30 - 90) * (Math.PI / 180);
+          const x = 96 + handRadius * Math.cos(angle);
+          const y = 96 + handRadius * Math.sin(angle);
+          const isSelected = m === tempMinute && !isHourMode;
+
+          return (
+            <button
+              key={`min-${m}`}
+              type="button"
+              onClick={() => handleMinuteSelect(m)}
+              className={`absolute w-7 h-7 rounded-full text-[10px] font-mono font-bold flex items-center justify-center transition-all ${
+                isSelected ? 'opacity-0 scale-50 pointer-events-none' : 'text-foreground hover:bg-primary/10'
+              }`}
+              style={{ left: `${x - 14}px`, top: `${y - 14}px` }}
+            >
+              {String(m).padStart(2, '0')}
+            </button>
+          );
+        })}
+      </div>
+    );
+
+    return (
+      <>
+        {hourLayout}
+        {minuteLayout}
+      </>
+    );
   };
 
   return (
     <div ref={rootRef} className={`relative inline-block w-full ${className}`}>
-      
-      {/* Table Input field (No absolute overlay button to prevent digit overlap) */}
       <input
         ref={inputRef}
         type="text"
@@ -247,10 +313,11 @@ export const TimePicker: React.FC<TimePickerProps> = ({
         onBlur={handleInputBlur}
         onFocus={() => setIsOpen(true)}
         placeholder={placeholder}
-        className="field text-center font-mono font-bold tracking-wide cursor-pointer"
+        className={`field text-center font-mono font-bold tracking-wide cursor-pointer transition-all duration-200 ${
+          isOpen ? 'ring-2 ring-primary/20 border-primary shadow-lg shadow-primary/5' : ''
+        }`}
       />
 
-      {/* Floating Viewport-fixed Material Dialog */}
       {isOpen && (
         <div
           className="time-picker-dropdown bg-surface border border-border shadow-2xl rounded-2xl p-4 flex flex-col gap-4 animate-scale-in glass select-none"
@@ -260,36 +327,34 @@ export const TimePicker: React.FC<TimePickerProps> = ({
             left: `${coords.left}px`,
             transform: 'translateX(-50%)',
             zIndex: 9999,
-            width: '270px',
+            width: '250px',
           }}
         >
-          
-          {/* Header section (Large display digits) */}
+          {/* Header section (Large display digits + AM/PM toggle) */}
           <div className="flex flex-col gap-1">
-            <p className="text-[9px] font-bold text-muted uppercase tracking-widest px-0.5">Select Time</p>
-            <div className="flex items-center justify-between gap-2.5">
-              
-              <div className="flex items-center gap-1">
+            <p className="text-[10px] font-bold text-muted uppercase tracking-widest px-0.5">Select Time</p>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5">
                 {/* Hour selection button */}
                 <button
                   type="button"
                   onClick={() => setMode('hour')}
-                  className={`w-16 h-14 rounded-xl flex items-center justify-center text-3xl font-extrabold font-mono transition-all ${
+                  className={`w-14 h-14 rounded-xl flex items-center justify-center text-3xl font-extrabold font-mono transition-all ${
                     mode === 'hour'
                       ? 'bg-primary/10 text-primary border border-primary/20 scale-105 shadow-sm'
                       : 'bg-surface-hover text-foreground hover:bg-surface-hover/80 border border-transparent'
                   }`}
                 >
-                  {String(tempHour).padStart(2, '0')}
+                  {String(tempHour)}
                 </button>
 
-                <span className="text-2xl font-bold text-foreground px-0.5 animate-pulse">:</span>
+                <span className="text-xl font-bold text-muted animate-pulse">:</span>
 
                 {/* Minute selection button */}
                 <button
                   type="button"
                   onClick={() => setMode('minute')}
-                  className={`w-16 h-14 rounded-xl flex items-center justify-center text-3xl font-extrabold font-mono transition-all ${
+                  className={`w-14 h-14 rounded-xl flex items-center justify-center text-3xl font-extrabold font-mono transition-all ${
                     mode === 'minute'
                       ? 'bg-primary/10 text-primary border border-primary/20 scale-105 shadow-sm'
                       : 'bg-surface-hover text-foreground hover:bg-surface-hover/80 border border-transparent'
@@ -299,7 +364,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
                 </button>
               </div>
 
-              {/* AM/PM toggle columns */}
+              {/* AM/PM toggle box */}
               <div className="flex flex-col border border-border rounded-xl overflow-hidden bg-surface shadow-sm text-[10px] font-extrabold w-12 h-14 text-center shrink-0 justify-stretch">
                 <button
                   type="button"
@@ -326,34 +391,38 @@ export const TimePicker: React.FC<TimePickerProps> = ({
           {/* Divider */}
           <div className="h-px bg-border/60 w-full" />
 
-          {/* Clock View or Keyboard input view */}
+          {/* Analog Clock Dial Visual View */}
           {!showKeyboard ? (
-            /* Clock Dial Visual View */
-            <div className="relative w-48 h-48 rounded-full bg-surface-hover/80 border border-border/40 mx-auto flex items-center justify-center select-none">
-              
+            <div 
+              ref={clockRef}
+              className="relative w-48 h-48 rounded-full bg-surface-hover/80 border border-border/40 mx-auto flex items-center justify-center select-none cursor-pointer touch-none"
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+            >
               {/* Radial Center Dot */}
-              <div className="w-1.5 h-1.5 rounded-full bg-primary absolute z-10" />
+              <div className="w-1.5 h-1.5 rounded-full bg-primary absolute z-10 pointer-events-none" />
 
               {/* Rotating Pointer Hand Line */}
               <div
-                className="absolute left-[calc(50%-1px)] bottom-[50%] w-0.5 bg-primary origin-bottom transition-all duration-200"
+                className={`absolute left-[calc(50%-1px)] bottom-[50%] w-0.5 bg-primary origin-bottom pointer-events-none ${isDragging ? '' : 'transition-all duration-200'}`}
                 style={{
-                  height: mode === 'hour' ? '66px' : '74px',
+                  height: `${handRadius}px`,
                   transform: `rotate(${handAngle}deg)`,
                 }}
               />
 
-              {/* Absolutely Positioned Selection Circle (prevents text rotation during rotations) */}
+              {/* Absolutely Positioned Selection Circle */}
               <div
-                className="absolute w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow shadow-primary/30 z-10 transition-all duration-200 pointer-events-none"
+                className={`absolute w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow shadow-primary/30 z-10 pointer-events-none ${isDragging ? '' : 'transition-all duration-200'}`}
                 style={{ left: `${coordsHighlight.x - 14}px`, top: `${coordsHighlight.y - 14}px` }}
               >
-                <span className="text-white font-extrabold text-xs font-mono">{coordsHighlight.val}</span>
+                <span className="text-white font-extrabold text-[10px] font-mono">{coordsHighlight.val}</span>
               </div>
 
               {/* Positioned Numbers overlay */}
               {renderClockNumbers()}
-
             </div>
           ) : (
             /* Direct Keyboard Input View */
@@ -364,7 +433,7 @@ export const TimePicker: React.FC<TimePickerProps> = ({
                   <input
                     type="text"
                     maxLength={2}
-                    value={String(tempHour).padStart(2, '0')}
+                    value={String(tempHour)}
                     onChange={(e) => {
                       let val = parseInt(e.target.value, 10) || 0;
                       if (val > 12) val = 12;
@@ -396,29 +465,18 @@ export const TimePicker: React.FC<TimePickerProps> = ({
             </div>
           )}
 
-          {/* Footer Controls (Keyboard toggle + Actions) */}
+          {/* Footer Controls */}
           <div className="border-t border-border/60 pt-3 flex items-center justify-between px-0.5">
             <button
               type="button"
               onClick={() => setShowKeyboard((prev) => !prev)}
-              className="btn-icon"
+              className="btn-icon p-1.5 rounded-lg hover:bg-surface-hover hover:text-primary transition-all text-muted"
               title={showKeyboard ? 'Select via Clock face' : 'Select via Keyboard'}
             >
               {showKeyboard ? (
-                <Clock className="w-4.5 h-4.5 text-muted hover:text-primary transition-colors" />
+                <Clock className="w-4 h-4" />
               ) : (
-                <svg
-                  className="w-4.5 h-4.5 text-muted hover:text-primary transition-colors"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <rect x="2" y="4" width="20" height="16" rx="2" />
-                  <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M18 12h.01M7 16h10" />
-                </svg>
+                <Keyboard className="w-4 h-4" />
               )}
             </button>
 

@@ -155,7 +155,7 @@ export default function SummaryPage() {
                 <div className="space-y-3">
                   {[1,2,3,4].map(i => <div key={i} className="skeleton h-8 rounded-xl" />)}
                 </div>
-              ) : weekly ? (
+              ) : weekly && weekly.mostProductiveDay !== 'N/A' ? (
                 <>
                   <ScoreBar score={weekly.avgProductivity} />
 
@@ -169,6 +169,29 @@ export default function SummaryPage() {
                       <p className="text-base font-extrabold mt-1 text-[var(--work)]">{fmtMins(weekly.avgWorkTime)}<span className="text-[10px] text-muted font-normal">/day</span></p>
                     </div>
                   </div>
+
+                  {/* Visual Balance Bar */}
+                  {(() => {
+                    const totalWeeklyTime = weekly.avgWorkTime + weekly.avgLearningTime + weekly.avgDistractionTime;
+                    if (totalWeeklyTime <= 0) return null;
+                    const workPct = (weekly.avgWorkTime / totalWeeklyTime) * 100;
+                    const learnPct = (weekly.avgLearningTime / totalWeeklyTime) * 100;
+                    const distPct = (weekly.avgDistractionTime / totalWeeklyTime) * 100;
+
+                    return (
+                      <div className="space-y-1.5 bg-surface-hover/20 p-3 rounded-xl border border-border/30">
+                        <div className="flex justify-between text-[10px] font-bold text-muted uppercase tracking-wider">
+                          <span>Activity Balance</span>
+                          <span>{fmtMins(totalWeeklyTime)} / day</span>
+                        </div>
+                        <div className="w-full h-3 rounded-full overflow-hidden flex bg-surface-hover">
+                          {workPct > 0 && <div className="h-full" style={{ width: `${workPct}%`, backgroundColor: 'var(--work)' }} title={`Work: ${workPct.toFixed(0)}%`} />}
+                          {learnPct > 0 && <div className="h-full" style={{ width: `${learnPct}%`, backgroundColor: 'var(--learning)' }} title={`Learning: ${learnPct.toFixed(0)}%`} />}
+                          {distPct > 0 && <div className="h-full" style={{ width: `${distPct}%`, backgroundColor: 'var(--distraction)' }} title={`Distraction: ${distPct.toFixed(0)}%`} />}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   <div className="space-y-2.5 pt-1">
                     {[
@@ -215,7 +238,7 @@ export default function SummaryPage() {
                 <div className="space-y-3">
                   {[1,2,3,4].map(i => <div key={i} className="skeleton h-8 rounded-xl" />)}
                 </div>
-              ) : monthly ? (
+              ) : monthly && monthly.mostProductiveDay !== 'N/A' ? (
                 <>
                   <ScoreBar score={monthly.avgProductivity} />
 
@@ -229,6 +252,29 @@ export default function SummaryPage() {
                       <p className="text-base font-extrabold mt-1">{monthly.mostActiveCategory}</p>
                     </div>
                   </div>
+
+                  {/* Visual Balance Bar */}
+                  {(() => {
+                    const totalMonthlyHours = monthly.totalWorkHours + monthly.totalLearningHours + monthly.totalDistractionHours;
+                    if (totalMonthlyHours <= 0) return null;
+                    const workPct = (monthly.totalWorkHours / totalMonthlyHours) * 100;
+                    const learnPct = (monthly.totalLearningHours / totalMonthlyHours) * 100;
+                    const distPct = (monthly.totalDistractionHours / totalMonthlyHours) * 100;
+
+                    return (
+                      <div className="space-y-1.5 bg-surface-hover/20 p-3 rounded-xl border border-border/30">
+                        <div className="flex justify-between text-[10px] font-bold text-muted uppercase tracking-wider">
+                          <span>Activity Balance</span>
+                          <span>{totalMonthlyHours} hours total</span>
+                        </div>
+                        <div className="w-full h-3 rounded-full overflow-hidden flex bg-surface-hover">
+                          {workPct > 0 && <div className="h-full" style={{ width: `${workPct}%`, backgroundColor: 'var(--work)' }} title={`Work: ${workPct.toFixed(0)}%`} />}
+                          {learnPct > 0 && <div className="h-full" style={{ width: `${learnPct}%`, backgroundColor: 'var(--learning)' }} title={`Learning: ${learnPct.toFixed(0)}%`} />}
+                          {distPct > 0 && <div className="h-full" style={{ width: `${distPct}%`, backgroundColor: 'var(--distraction)' }} title={`Distraction: ${distPct.toFixed(0)}%`} />}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   <div className="space-y-2.5 pt-1">
                     {[

@@ -69,7 +69,7 @@ const SCORE_COLOR = (s: number) => s >= 70 ? 'text-emerald-600 dark:text-emerald
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function HistoryPage() {
-  const { user, isAuthenticated, isLoading } = useApp();
+  const { user, isAuthenticated, isLoading, setCurrentDate } = useApp();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -227,10 +227,24 @@ export default function HistoryPage() {
           {/* ── Report Panel ──────────────────────────────────────────────── */}
           <div className="lg:col-span-7 card overflow-hidden">
             {/* Report header */}
-            <div className="px-6 py-4 border-b border-border flex items-start justify-between gap-4">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
               <div>
                 <h2 className="text-base font-bold">{fmtDate(selectedDate)}</h2>
-                <p className="text-xs text-muted mt-0.5">Daily productivity report</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xs text-muted">Daily productivity report</p>
+                  {report && (
+                    <button
+                      onClick={() => {
+                        setCurrentDate(selectedDate);
+                        router.push('/');
+                      }}
+                      className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1 bg-primary/5 px-2.5 py-0.5 rounded-full border border-primary/10 ml-2"
+                    >
+                      <Clock className="w-3 h-3" />
+                      View Log Details
+                    </button>
+                  )}
+                </div>
               </div>
               {report && (
                 <div className="flex items-center gap-2 shrink-0">
@@ -285,6 +299,53 @@ export default function HistoryPage() {
                           backgroundColor: report.productivityScore >= 70 ? 'var(--health)' : report.productivityScore >= 40 ? 'var(--personal)' : 'var(--distraction)',
                         }}
                       />
+                    </div>
+                  </div>
+
+                  {/* Time distribution bar */}
+                  <div className="space-y-2 bg-surface-hover/20 p-3 rounded-xl border border-border/30">
+                    <div className="flex justify-between text-xs text-muted font-semibold">
+                      <span className="uppercase tracking-wider text-[9px] font-bold">Time Distribution</span>
+                      <span className="font-bold text-foreground text-[10px]">{fmtMins(report.totalLoggedTime)} logged</span>
+                    </div>
+                    <div className="w-full h-3 rounded-full overflow-hidden flex bg-surface-hover">
+                      {[
+                        { name: 'Work', time: report.workTime, color: 'var(--work)' },
+                        { name: 'Learning', time: report.learningTime, color: 'var(--learning)' },
+                        { name: 'Health', time: report.healthTime, color: 'var(--health)' },
+                        { name: 'Personal', time: report.personalTime, color: 'var(--personal)' },
+                        { name: 'Distraction', time: report.distractionTime, color: 'var(--distraction)' },
+                        { name: 'Sleep', time: report.sleepTime, color: 'var(--sleep)' },
+                      ].map(({ name, time, color }) => {
+                        const pct = report.totalLoggedTime > 0 ? (time / report.totalLoggedTime) * 100 : 0;
+                        if (pct === 0) return null;
+                        return (
+                          <div
+                            key={name}
+                            title={`${name}: ${fmtMins(time)}`}
+                            className="h-full"
+                            style={{ width: `${pct}%`, backgroundColor: color }}
+                          />
+                        );
+                      })}
+                    </div>
+                    <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 pt-0.5">
+                      {[
+                        { name: 'Work', time: report.workTime, color: 'var(--work)', emoji: '💼' },
+                        { name: 'Learning', time: report.learningTime, color: 'var(--learning)', emoji: '📚' },
+                        { name: 'Health', time: report.healthTime, color: 'var(--health)', emoji: '🏃' },
+                        { name: 'Personal', time: report.personalTime, color: 'var(--personal)', emoji: '🏠' },
+                        { name: 'Distraction', time: report.distractionTime, color: 'var(--distraction)', emoji: '📱' },
+                        { name: 'Sleep', time: report.sleepTime, color: 'var(--sleep)', emoji: '😴' },
+                      ].map(({ name, time, color, emoji }) => {
+                        if (!time) return null;
+                        return (
+                          <span key={name} className="flex items-center gap-1 text-[9px] text-muted font-bold">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
+                            {emoji} {fmtMins(time)}
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
 

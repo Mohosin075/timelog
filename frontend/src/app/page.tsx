@@ -338,10 +338,17 @@ function ActivityFormRow({
         <select
           value={v.category}
           onChange={(e) => set('category', e.target.value as CategoryName)}
-          className={inputCls}
+          className={`${inputCls} font-bold`}
+          style={{
+            color: `var(--${v.category.toLowerCase()})`,
+            backgroundColor: `color-mix(in srgb, var(--${v.category.toLowerCase()}) 8%, transparent)`,
+            borderColor: `color-mix(in srgb, var(--${v.category.toLowerCase()}) 25%, transparent)`,
+          }}
         >
           {CATEGORIES.map((c) => (
-            <option key={c.name} value={c.name}>{c.emoji} {c.name}</option>
+            <option key={c.name} value={c.name} style={{ color: 'var(--foreground)', backgroundColor: 'var(--surface)' }}>
+              {c.emoji} {c.name}
+            </option>
           ))}
         </select>
       </td>
@@ -428,18 +435,37 @@ function MobileAddForm({
           className="field text-sm"
         />
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <p className="text-[9px] font-bold text-muted uppercase mb-1">Category</p>
-          <select value={v.category} onChange={(e) => set('category', e.target.value as CategoryName)} className="field text-sm">
-            {CATEGORIES.map((c) => (
-              <option key={c.name} value={c.name}>{c.emoji} {c.name}</option>
-            ))}
-          </select>
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <p className="text-[9px] font-bold text-muted uppercase tracking-widest px-0.5">Category</p>
+          <div className="grid grid-cols-3 gap-1.5 bg-surface-hover/20 p-1.5 rounded-xl border border-border/30">
+            {CATEGORIES.map((c) => {
+              const isSelected = v.category === c.name;
+              const catVar = `var(--${c.name.toLowerCase()})`;
+              return (
+                <button
+                  key={c.name}
+                  type="button"
+                  onClick={() => set('category', c.name)}
+                  className={`flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg text-[10px] font-extrabold transition-all border active:scale-95 ${
+                    isSelected
+                      ? 'shadow-sm border-transparent text-white font-bold'
+                      : 'bg-surface hover:bg-surface-hover border-border/50 text-foreground'
+                  }`}
+                  style={{
+                    backgroundColor: isSelected ? catVar : undefined,
+                  }}
+                >
+                  <span>{c.emoji}</span>
+                  <span>{c.name}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div>
           <p className="text-[9px] font-bold text-muted uppercase mb-1">Notes</p>
-          <input type="text" value={v.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Optional" className="field text-sm" />
+          <input type="text" value={v.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Optional (e.g. description)" className="field text-sm" />
         </div>
       </div>
       <div className="flex gap-2 pt-1">
@@ -468,6 +494,7 @@ export default function Dashboard() {
   const [showAddRow, setShowAddRow] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [filterCategory, setFilterCategory] = useState<CategoryName | null>(null);
 
   // Unclosed day resolution
   const [resolvingIdx, setResolvingIdx] = useState(0);
@@ -531,6 +558,11 @@ export default function Dashboard() {
 
     return { total, productive, score, topCat, topTime };
   }, [activities]);
+
+  const filteredActivities = React.useMemo(() => {
+    if (!filterCategory) return activities;
+    return activities.filter((a) => a.category === filterCategory);
+  }, [activities, filterCategory]);
 
   // ── CRUD handlers ─────────────────────────────────────────────────────────
   const handleAdd = useCallback(async (v: ActivityFormValues) => {
@@ -801,20 +833,30 @@ export default function Dashboard() {
                 );
               })}
             </div>
-            <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1">
+            <div className="flex flex-wrap gap-x-3 gap-y-1.5 pt-1">
               {CATEGORIES.map((cat) => {
                 const catMin = activities
                   .filter((a) => a.category === cat.name && a.duration)
                   .reduce((s, a) => s + (a.duration ?? 0), 0);
                 if (!catMin) return null;
+                const isFiltered = filterCategory === cat.name;
                 return (
-                  <span key={cat.name} className="flex items-center gap-1 text-[10px] text-muted font-semibold">
+                  <button
+                    key={cat.name}
+                    type="button"
+                    onClick={() => setFilterCategory(isFiltered ? null : cat.name)}
+                    className={`flex items-center gap-1.5 text-[10px] font-semibold px-2.5 py-0.5 rounded-full border transition-all active:scale-95 ${
+                      isFiltered
+                        ? 'bg-primary text-white border-transparent'
+                        : 'text-muted hover:text-foreground border-transparent bg-surface-hover/50'
+                    }`}
+                  >
                     <span
-                      className="inline-block w-2 h-2 rounded-full"
-                      style={{ backgroundColor: `var(--${cat.name.toLowerCase()})` }}
+                      className="inline-block w-1.5 h-1.5 rounded-full"
+                      style={{ backgroundColor: isFiltered ? 'white' : `var(--${cat.name.toLowerCase()})` }}
                     />
-                    {cat.emoji} {fmtMins(catMin)}
-                  </span>
+                    {cat.emoji} {cat.name}: {fmtMins(catMin)}
+                  </button>
                 );
               })}
             </div>
@@ -828,14 +870,22 @@ export default function Dashboard() {
           <div className="xl:col-span-2 md:card md:overflow-hidden -mx-4 sm:mx-0">
             {/* Desktop-only header (hidden on mobile - mobile uses section header inside) */}
             <div className="hidden md:flex items-center justify-between px-5 py-4 border-b border-border">
-              <div>
-                <h2 className="text-base font-bold">
-                  Activity Log
-                  {activitiesLoading && <span className="spinner ml-2 w-3 h-3 border-[2px]" />}
-                </h2>
-                <p className="text-xs text-muted mt-0.5">
-                  {isToday ? "Today" : currentDate} · {isLocked ? '🔒 Locked day' : `${activities.length} entr${activities.length === 1 ? 'y' : 'ies'}`}
-                </p>
+              <div className="flex items-center gap-4">
+                <div>
+                  <h2 className="text-base font-bold">
+                    Activity Log
+                    {activitiesLoading && <span className="spinner ml-2 w-3 h-3 border-[2px]" />}
+                  </h2>
+                  <p className="text-xs text-muted mt-0.5">
+                    {isToday ? "Today" : currentDate} · {isLocked ? '🔒 Locked day' : `${filteredActivities.length} visible entr${filteredActivities.length === 1 ? 'y' : 'ies'}`}
+                  </p>
+                </div>
+                {filterCategory && (
+                  <span className="flex items-center gap-1 text-[10px] font-bold bg-primary/10 text-primary px-2.5 py-0.5 rounded-full border border-primary/20 animate-fade-in self-center">
+                    Filtered: {CAT_MAP[filterCategory].emoji} {filterCategory}
+                    <button onClick={() => setFilterCategory(null)} className="ml-1 text-primary/70 hover:text-primary font-bold">×</button>
+                  </span>
+                )}
               </div>
               {!isLocked && !showAddRow && editingId === null && (
                 <button
@@ -852,17 +902,25 @@ export default function Dashboard() {
             <div className="md:hidden pt-2 pb-2">
               {/* Section header */}
               <div className="flex items-center justify-between px-4 mb-3">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-base font-extrabold">
-                    {isToday ? 'Today' : 'Activities'}
-                    {activitiesLoading && <span className="spinner ml-2 w-3 h-3 border-[2px]" />}
-                  </h2>
-                  {activities.length > 0 && (
-                    <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                      {activities.length}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-extrabold">
+                      {isToday ? 'Today' : 'Activities'}
+                      {activitiesLoading && <span className="spinner ml-2 w-3 h-3 border-[2px]" />}
+                    </h2>
+                    {activities.length > 0 && (
+                      <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                        {filteredActivities.length}
+                      </span>
+                    )}
+                    {isLocked && <span className="text-[10px] text-muted">🔒</span>}
+                  </div>
+                  {filterCategory && (
+                    <span className="flex items-center gap-1 text-[10px] font-bold bg-primary/10 text-primary px-2.5 py-0.5 rounded-full border border-primary/20 animate-fade-in self-start">
+                      Filtered: {CAT_MAP[filterCategory].emoji} {filterCategory}
+                      <button onClick={() => setFilterCategory(null)} className="ml-1 text-primary/70 hover:text-primary font-bold">×</button>
                     </span>
                   )}
-                  {isLocked && <span className="text-[10px] text-muted">🔒</span>}
                 </div>
               </div>
 
@@ -873,7 +931,27 @@ export default function Dashboard() {
                   onCancel={() => setShowAddRow(false)}
                 />
               )}
-              {activities.map((act) => {
+              {activitiesLoading && activities.length === 0 && (
+                <div className="space-y-3 px-3">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="rounded-3xl bg-surface border border-border p-4" style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="skeleton w-10 h-10 rounded-2xl" />
+                        <div className="flex-1 space-y-1.5">
+                          <div className="skeleton h-3.5 w-2/3 rounded-full" />
+                          <div className="skeleton h-2.5 w-1/3 rounded-full" />
+                        </div>
+                      </div>
+                      <div className="skeleton h-px w-full rounded" />
+                      <div className="mt-3 flex justify-between">
+                        <div className="skeleton h-2.5 w-24 rounded-full" />
+                        <div className="skeleton h-2.5 w-16 rounded-full" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {filteredActivities.map((act) => {
                 const isEditing = editingId === act._id;
                 const isDeleting = deletingId === act._id;
                 return isEditing ? (
@@ -962,7 +1040,7 @@ export default function Dashboard() {
                   )}
 
                   {/* Existing activities */}
-                  {activities.map((act) => {
+                  {filteredActivities.map((act) => {
                     const gap = gapMap[act._id];
                     const isEditing = editingId === act._id;
                     const isDeleting = deletingId === act._id;
@@ -1024,7 +1102,7 @@ export default function Dashboard() {
                         )}
 
                         {/* Gap row */}
-                        {gap !== undefined && gap > 0 && (
+                        {gap !== undefined && gap > 0 && !filterCategory && (
                           <tr className="unlogged-gap-row">
                             <td colSpan={6} className="py-2 px-5">
                               <span className="text-[11px] font-bold text-rose-500 italic flex items-center gap-1.5">
