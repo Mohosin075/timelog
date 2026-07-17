@@ -6,10 +6,12 @@ import { useToast } from '@/components/ToastProvider';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
 import { TimePicker } from '@/components/TimePicker';
+import { PomodoroWidget } from '@/components/PomodoroWidget';
+import { PeakHoursWidget } from '@/components/PeakHoursWidget';
 import {
   Plus, Trash2, Pencil, Check, X,
   AlertTriangle, AlertCircle, Lock, TrendingUp,
-  Clock, Zap, Layers, ChevronRight, ArrowUpRight,
+  Clock, Zap, Layers, ChevronRight, ArrowUpRight, Flame,
 } from 'lucide-react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -495,6 +497,23 @@ export default function Dashboard() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState<CategoryName | null>(null);
+  const [pomodoroInitial, setPomodoroInitial] = useState<ActivityFormValues | null>(null);
+
+  const handlePomodoroComplete = useCallback((durationMins: number, label: string) => {
+    const now = new Date();
+    const start = new Date(now.getTime() - durationMins * 60_000);
+    const formatHM = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    
+    setPomodoroInitial({
+      startTime: formatHM(start),
+      endTime: formatHM(now),
+      activity: label ? `Focus: ${label}` : 'Focus Session',
+      category: 'Work',
+      notes: 'Logged automatically via Pomodoro Timer.',
+    });
+    setShowAddRow(true);
+    toast.success('Focus session complete! Check form below to log.');
+  }, [toast]);
 
   // Unclosed day resolution
   const [resolvingIdx, setResolvingIdx] = useState(0);
@@ -575,6 +594,7 @@ export default function Dashboard() {
       notes: v.notes || undefined,
     });
     setShowAddRow(false);
+    setPomodoroInitial(null);
     toast.success('Activity logged!');
   }, [addActivity, currentDate, toast]);
 
@@ -926,9 +946,9 @@ export default function Dashboard() {
 
               {showAddRow && !isLocked && (
                 <MobileAddForm
-                  initial={{ ...EMPTY_FORM, startTime: defaultStartTime() }}
+                  initial={pomodoroInitial || { ...EMPTY_FORM, startTime: defaultStartTime() }}
                   onSave={handleAdd}
-                  onCancel={() => setShowAddRow(false)}
+                  onCancel={() => { setShowAddRow(false); setPomodoroInitial(null); }}
                 />
               )}
               {activitiesLoading && activities.length === 0 && (
@@ -1032,9 +1052,9 @@ export default function Dashboard() {
                   {/* New activity form row */}
                   {showAddRow && !isLocked && (
                     <ActivityFormRow
-                      initial={{ ...EMPTY_FORM, startTime: defaultStartTime() }}
+                      initial={pomodoroInitial || { ...EMPTY_FORM, startTime: defaultStartTime() }}
                       onSave={handleAdd}
-                      onCancel={() => setShowAddRow(false)}
+                      onCancel={() => { setShowAddRow(false); setPomodoroInitial(null); }}
                       isNew
                     />
                   )}
@@ -1159,28 +1179,36 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Timeline sidebar */}
-          <div className="card p-5">
-            <h2 className="text-base font-bold mb-4 flex items-center gap-2">
-              <Zap className="w-4 h-4 text-primary" />
-              Daily Timeline
-            </h2>
-
-            {activities.length > 0 ? (
-              <div>
-                {activities.map((act, i) => (
-                  <TimelineItem
-                    key={act._id}
-                    act={act}
-                    isLast={i === activities.length - 1}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-muted italic">
-                Your day&apos;s flow will appear here as you log activities.
-              </p>
+          {/* Timeline & Focus Widgets Column */}
+          <div className="space-y-6">
+            {!isLocked && (
+              <PomodoroWidget onSessionComplete={handlePomodoroComplete} />
             )}
+
+            <PeakHoursWidget activities={activities} />
+
+            {/* Timeline sidebar */}
+            <div className="card p-5">
+              <h2 className="text-base font-bold mb-4 flex items-center gap-2">
+                <Zap className="w-4 h-4 text-primary" />
+                Daily Timeline
+              </h2>
+
+              {activities.length > 0 ? (
+                <div>
+                  {activities.map((act, i) => (
+                    <TimelineItem
+                      key={act._id}
+                      act={act}
+                      isLast={i === activities.length - 1}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted italic">
+                  Your day&apos;s flow will appear here as you log activities.
+                </p>
+              )}
 
             {/* Score summary at bottom of timeline */}
             {metrics.total > 0 && (
@@ -1211,6 +1239,7 @@ export default function Dashboard() {
             )}
           </div>
         </div>
+      </div>
       </main>
 
       {/* ── Mobile FAB (Floating Add Button) ── */}

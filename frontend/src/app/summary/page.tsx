@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
 import { api } from '@/services/api';
 import { useToast } from '@/components/ToastProvider';
-import { BarChart3, TrendingUp, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { WeeklyTrendChart } from '@/components/WeeklyTrendChart';
+import { AICoachWidget } from '@/components/AICoachWidget';
+import { BarChart3, TrendingUp, ChevronLeft, ChevronRight, RefreshCw, Clock, Flame } from 'lucide-react';
 
 const MONTHS = [
   'January','February','March','April','May','June',
@@ -27,6 +29,7 @@ interface WeeklySummary {
   avgWorkTime: number;
   avgLearningTime: number;
   avgDistractionTime: number;
+  dailyScores: { date: string; score: number }[];
 }
 
 interface MonthlySummary {
@@ -170,6 +173,8 @@ export default function SummaryPage() {
                     </div>
                   </div>
 
+                  <WeeklyTrendChart data={weekly.dailyScores} />
+
                   {/* Visual Balance Bar */}
                   {(() => {
                     const totalWeeklyTime = weekly.avgWorkTime + weekly.avgLearningTime + weekly.avgDistractionTime;
@@ -295,6 +300,16 @@ export default function SummaryPage() {
             </div>
           </div>
         </div>
+
+        {/* AI Coach Assistant Section */}
+        {((weekly && weekly.mostProductiveDay !== 'N/A') || (monthly && monthly.mostProductiveDay !== 'N/A')) && (
+          <AICoachWidget
+            avgScore={weekly ? weekly.avgProductivity : (monthly ? monthly.avgProductivity : 0)}
+            workMins={weekly ? weekly.avgWorkTime : (monthly ? monthly.totalWorkHours * 60 : 0)}
+            learnMins={weekly ? weekly.avgLearningTime : (monthly ? monthly.totalLearningHours * 60 : 0)}
+            distMins={weekly ? weekly.avgDistractionTime : (monthly ? monthly.totalDistractionHours * 60 : 0)}
+          />
+        )}
       </main>
     </div>
   );
